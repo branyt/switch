@@ -1,0 +1,12 @@
+   <declare-styleable name="CustomerSwitch">
+        <attr name="open" format="boolean"></attr>
+        <attr name="bg_radius" format="dimension"></attr>
+        <attr name="bg_color_nor" format="color"></attr>
+        <attr name="bg_color_focus" format="color"></attr>
+        <attr name="duration" format="integer"></attr>
+
+        <attr name="icon_text" format="string"></attr>
+        <attr name="icon_color" format="color"></attr>
+        <attr name="icon_size" format="dimension"></attr>
+
+    </declare-styleable>
