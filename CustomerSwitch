@@ -1,0 +1,204 @@
+package com.okk.myapplication.view;
+
+import android.animation.Animator;
+import android.animation.ValueAnimator;
+import android.content.Context;
+import android.content.res.Resources;
+import android.content.res.TypedArray;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.graphics.Typeface;
+import android.util.AttributeSet;
+import android.view.MotionEvent;
+import android.view.View;
+
+import androidx.annotation.Nullable;
+
+import com.okk.myapplication.R;
+import com.okk.myapplication.utils.PxTool;
+import com.okk.myapplication.utils.TypeFace;
+
+public class CustomerIconSwitch extends View {
+    private int bg_color_nor,bg_color_focus;
+    private float bgRadius;
+    private int width, height;
+    private Paint bgPaint;
+
+    private float iconSize;
+
+    private Resources resources;
+    private Typeface typeface;
+    private Context mContext;
+    //icon的圆心的起始x轴坐标  结束的X轴坐标
+    private float startX, endX;
+    //变化中的x轴坐标
+    private float change_x;
+    //x轴偏移量
+    private float x_value;
+    private Bitmap mBitmap;
+
+    private final boolean LOCATION_CLOSE = true;
+    private final boolean LOCATION_OPEN = false;
+    private boolean bool_open = false;
+    private boolean open_animator = false;
+    private ValueAnimator valueAnimator;
+
+    private int duration;
+
+    private CustomerSwitch.OnCheckedChangeListener onCheckedChangeListener;
+
+    public CustomerIconSwitch(Context context) {
+        this(context, null);
+    }
+
+    public CustomerIconSwitch(Context context, @Nullable AttributeSet attrs) {
+        this(context, attrs, 0);
+    }
+
+    public CustomerIconSwitch(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        init(context, attrs);
+    }
+
+    private void init (Context context, AttributeSet attrs) {
+        mContext = context;
+        resources = getResources();
+        typeface = TypeFace.getTypeFace(context);
+        TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.CustomerSwitch);
+        bg_color_nor = typedArray.getColor(R.styleable.CustomerSwitch_bg_color_nor, resources.getColor(R.color.colorC9D6F1));
+        bg_color_focus = typedArray.getColor(R.styleable.CustomerSwitch_bg_color_focus, resources.getColor(R.color.color01CB5B));
+        bgRadius = typedArray.getDimension(R.styleable.CustomerSwitch_bg_radius, PxTool.dpToPx(context, 10));
+        duration = typedArray.getInteger(R.styleable.CustomerSwitch_duration, 100);
+
+        iconSize = typedArray.getDimension(R.styleable.CustomerSwitch_icon_size, PxTool.dpToPx(context, 24));
+        bool_open = typedArray.getBoolean(R.styleable.CustomerSwitch_open, false);
+        mBitmap = BitmapFactory.decodeResource(mContext.getResources(), R.mipmap.user_observe_icon_img);
+        bgPaint = new Paint();
+        bgPaint.setAntiAlias(true);
+        bgPaint.setColor(bg_color_nor);
+
+        typedArray.recycle();
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        RectF rectF_bg = new RectF(0,PxTool.dpToPx(mContext, 4),width,height - PxTool.dpToPx(mContext, 4));
+        //绘制圆起始点
+        if (bool_open == LOCATION_CLOSE) {
+            if (open_animator) {
+                x_value = change_x;
+            } else {
+                x_value = startX;
+            }
+
+        } else if (bool_open == LOCATION_OPEN) {
+            if (open_animator) {
+                x_value = change_x;
+            } else {
+                x_value = endX;
+            }
+        }
+        //绘制背景圆角区域
+        canvas.drawRoundRect(rectF_bg, bgRadius,bgRadius,bgPaint);
+        Rect srcRect = new Rect(0,0,PxTool.dpToPx(mContext, 24),PxTool.dpToPx(mContext, 24));
+        Rect dstRect = new Rect((int) x_value,0, (int) (PxTool.dpToPx(mContext, 24) + x_value),
+                PxTool.dpToPx(mContext, 24));
+        canvas.drawBitmap(mBitmap,srcRect,dstRect, null);
+    }
+
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        int action = event.getAction();
+        switch (action) {
+            case MotionEvent.ACTION_UP:
+                open_animator = true;
+                if (bool_open == LOCATION_CLOSE) {
+                    bool_open = LOCATION_OPEN;
+                    valueAnimator = ValueAnimator.ofFloat(startX, endX);
+                } else if (bool_open == LOCATION_OPEN) {
+                    bool_open = LOCATION_CLOSE;
+                    valueAnimator = ValueAnimator.ofFloat(endX, startX);
+                }
+
+                valueAnimator.setDuration(duration);
+                valueAnimator.addUpdateListener(valueAnimator -> {
+                    change_x = (Float) valueAnimator.getAnimatedValue();
+                    postInvalidate();
+                });
+                if (bool_open) {
+                    mBitmap = BitmapFactory.decodeResource(mContext.getResources(), R.mipmap.user_miner_icon_nor);
+                } else {
+                    mBitmap = BitmapFactory.decodeResource(mContext.getResources(), R.mipmap.user_observe_icon_img);
+                }
+                valueAnimator.start();
+                valueAnimator.addListener(new Animator.AnimatorListener() {
+                    @Override
+                    public void onAnimationStart(Animator animator) {
+
+                    }
+
+                    @Override
+                    public void onAnimationEnd(Animator animator) {
+                        valueAnimator.cancel();
+                        valueAnimator = null;
+                    }
+
+                    @Override
+                    public void onAnimationCancel(Animator animator) {
+
+                    }
+
+                    @Override
+                    public void onAnimationRepeat(Animator animator) {
+
+                    }
+                });
+
+                if (onCheckedChangeListener != null) {
+                    onCheckedChangeListener.onCheckedChanged(bool_open);
+                }
+
+                break;
+        }
+        return true;
+    }
+
+
+    public boolean getBool_open() {
+        return bool_open;
+    }
+
+    public void setBool_open(boolean bool_open) {
+        this.bool_open = bool_open;
+        open_animator = false;
+        if (bool_open) {
+            mBitmap = BitmapFactory.decodeResource(mContext.getResources(), R.mipmap.user_miner_icon_nor);
+        } else {
+            mBitmap = BitmapFactory.decodeResource(mContext.getResources(), R.mipmap.user_observe_icon_img);
+        }
+        postInvalidate();
+    }
+
+    public interface OnCheckedChangeListener{
+        void onCheckedChanged(boolean isChecked);
+    }
+
+    public void setOnCheckedChangeListener(CustomerSwitch.OnCheckedChangeListener l){
+        onCheckedChangeListener = l;
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        width = w;
+        height = h;
+        startX =  0;
+        endX = PxTool.dpToPx(mContext,16);
+    }
+}
